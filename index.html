@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Avanzax: matrícula y horarios</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F6F7F9;--surface:#fff;--ink:#1B2A41;--muted:#5B677A;--line:#DDE2EA;--brand:#2B59C3;--tint:#E6EDFB;--bad:#B3261E;--bad-bg:#FBE9E7;--ok:#1E7B4F;--ok-bg:#E3F3EA;--mid:#8A5A00;--mid-bg:#FFF1D6}
+@media (prefers-color-scheme:dark){:root{--bg:#0F1623;--surface:#172033;--ink:#E7ECF4;--muted:#9AA6B8;--line:#2A3650;--brand:#7FA2F5;--tint:#1F2E55;--bad:#FF8A80;--bad-bg:#3A1F24;--ok:#6FD0A0;--ok-bg:#16322A;--mid:#F0C060;--mid-bg:#3A2E12}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.55 "IBM Plex Sans",system-ui,sans-serif;font-variant-numeric:tabular-nums}
+main{max-width:1060px;margin:0 auto;padding:32px 20px 64px}
+h1{font-size:2rem;line-height:1.15;margin:0 0 6px;font-weight:600;letter-spacing:-.01em}
+h2{font-size:1.15rem;margin:0 0 12px;font-weight:600}
+.sub{color:var(--muted);margin:0 0 28px;max-width:62ch}
+section{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:20px;margin-bottom:20px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}.grid2 section{margin:0}
+@media(max-width:760px){.grid2{grid-template-columns:1fr}}
+.scroll{overflow-x:auto}
+/* horario semanal */
+.semana{display:grid;grid-template-columns:44px repeat(6,minmax(96px,1fr));min-width:700px}
+.semana h3{margin:0;padding:0 0 8px;font-size:.85rem;font-weight:500;color:var(--muted);text-align:center}
+.horas span{display:block;height:56px;font-size:.78rem;color:var(--muted);transform:translateY(-.6em)}
+.col{position:relative;border-left:1px solid var(--line);background:repeating-linear-gradient(to bottom,transparent 0 55px,var(--line) 55px 56px)}
+.bloque{position:absolute;padding:4px 7px;overflow:hidden;background:var(--tint);border-left:3px solid var(--brand);border-radius:4px;font-size:.78rem;line-height:1.3;outline:1px solid var(--surface)}
+.bloque b{display:block;font-size:.85rem}.bloque span{display:block;color:var(--muted)}
+.bloque.cruce{background:var(--bad-bg);border-left-color:var(--bad)}
+.estado{margin:14px 0 0;padding:10px 12px;border-radius:6px;font-size:.95rem;background:var(--ok-bg);color:var(--ok)}
+.estado.mal{background:var(--bad-bg);color:var(--bad)}
+/* tablas */
+table{width:100%;border-collapse:collapse;font-size:.95rem}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}th{font-weight:500;color:var(--muted)}
+td.num,th.num{text-align:right}
+.pill{display:inline-block;padding:1px 9px;border-radius:99px;font-size:.82rem}
+.pagado{background:var(--ok-bg);color:var(--ok)}.parcial{background:var(--mid-bg);color:var(--mid)}.pendiente{background:var(--bad-bg);color:var(--bad)}
+.barra{height:8px;background:var(--line);border-radius:4px;min-width:90px}.barra i{display:block;height:100%;background:var(--brand);border-radius:4px}
+/* formularios */
+label{display:block;font-size:.9rem;color:var(--muted);margin:10px 0 4px}
+input,select{width:100%;padding:8px 10px;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px}
+button{margin-top:14px;padding:9px 16px;font:inherit;font-weight:500;color:#fff;background:var(--brand);border:0;border-radius:6px;cursor:pointer}
+:is(input,select,button):focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.resultado{margin:14px 0 0;font-size:1.25rem;font-weight:600}.resultado.error{font-size:.95rem;font-weight:400;color:var(--bad)}
+.ayuda{font-size:.88rem;color:var(--muted);margin:8px 0 0}
+</style>
+</head>
+<body>
+<main>
+  <h1>Matrícula y horarios</h1>
+  <p class="sub">Instituto Avanzax, ciclo agosto–diciembre. Todos los datos son ficticios y se usan solo con fines académicos.</p>
+
+  <section aria-labelledby="t-sem">
+    <h2 id="t-sem">Horario semanal por sección</h2>
+    <div class="scroll"><div class="semana" id="semana"></div></div>
+    <p class="estado" id="estado-cruces" role="status"></p>
+  </section>
+
+  <section aria-labelledby="t-sec">
+    <h2 id="t-sec">Secciones</h2>
+    <div class="scroll"><table>
+      <thead><tr><th>Código</th><th>Curso</th><th>Horario</th><th>Aula</th><th>Docente</th><th class="num">Cupos</th><th>Pago</th></tr></thead>
+      <tbody id="tabla-secciones"></tbody>
+    </table></div>
+  </section>
+
+  <div class="grid2">
+    <section aria-labelledby="t-pen">
+      <h2 id="t-pen">Calculadora de pensión</h2>
+      <label for="monto">Monto base (S/)</label><input id="monto" type="number" min="0" step="0.01" value="450">
+      <label for="desc">Descuento (%)</label><input id="desc" type="number" min="0" max="100" value="0">
+      <label for="atraso">Meses de atraso</label><input id="atraso" type="number" min="0" step="1" value="0">
+      <p class="resultado" id="res-pension" role="status"></p>
+      <p class="ayuda">Cada mes de atraso suma 2 % de mora.</p>
+    </section>
+
+    <section aria-labelledby="t-cru">
+      <h2 id="t-cru">Validar cruce entre dos secciones</h2>
+      <label for="sel-a">Sección A</label><select id="sel-a"></select>
+      <label for="sel-b">Sección B</label><select id="sel-b"></select>
+      <button type="button" id="btn-validar">Validar cruce</button>
+      <p class="resultado" id="res-cruce" role="status"></p>
+    </section>
+  </div>
+
+  <section aria-labelledby="t-ocu" style="margin-top:20px">
+    <h2 id="t-ocu">Ocupación de aulas</h2>
+    <div class="scroll"><table>
+      <thead><tr><th>Aula</th><th>Secciones</th><th class="num">Matriculados</th><th class="num">Capacidad</th><th>Ocupación</th></tr></thead>
+      <tbody id="tabla-ocupacion"></tbody>
+    </table></div>
+  </section>
+</main>
+
+<script src="matricula/seccion.js"></script>
+<script src="matricula/pension.js"></script>
+<script src="horarios/cruces.js"></script>
+<script src="reportes/ocupacion.js"></script>
+<script>
+const DIAS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'], H0 = 8, H1 = 14, PX = 56;
+const $ = (id) => document.getElementById(id);
+const ETIQUETA = { pagado: 'Pagado', parcial: 'Parcial', pendiente: 'Pendiente' };
+const cruces = detectarCruces(SECCIONES);
+const enCruce = new Set(cruces.flatMap((c) => [c.a, c.b]));
+
+function renderSemana() {
+  let html = '<div><h3>&nbsp;</h3><div class="horas">' +
+    Array.from({ length: H1 - H0 }, (_, i) => `<span>${H0 + i}:00</span>`).join('') + '</div></div>';
+  for (const d of DIAS) {
+    const items = SECCIONES.filter((s) => s.horario.dia === d)
+      .map((s) => ({ s, i: aMinutos(s.horario.inicio), f: aMinutos(s.horario.fin) }))
+      .sort((x, y) => x.i - y.i);
+    const carriles = [];
+    for (const it of items) {
+      let c = carriles.findIndex((fin) => fin <= it.i);
+      if (c < 0) { c = carriles.length; carriles.push(0); }
+      carriles[c] = it.f; it.c = c;
+    }
+    const n = Math.max(carriles.length, 1);
+    html += `<div><h3>${d}</h3><div class="col" style="height:${(H1 - H0) * PX}px">` + items.map((it) =>
+      `<div class="bloque${enCruce.has(it.s.codigo) ? ' cruce' : ''}" style="top:${(it.i / 60 - H0) * PX}px;height:${(it.f - it.i) / 60 * PX - 2}px;left:${it.c * 100 / n}%;width:${100 / n}%">` +
+      `<b>${it.s.codigo}</b><span>${it.s.curso}</span><span>${it.s.aula}</span></div>`).join('') + '</div></div>';
+  }
+  $('semana').innerHTML = html;
+  const e = $('estado-cruces');
+  if (cruces.length) {
+    e.className = 'estado mal';
+    e.textContent = cruces.map((c) => `${c.a} y ${c.b} chocan por ${c.motivos.join(' y ')}.`).join(' ') + ' Cambia el aula, el docente o el horario de una de ellas.';
+  } else {
+    e.className = 'estado';
+    e.textContent = 'No hay cruces de horario.';
+  }
+}
+
+function renderSecciones() {
+  $('tabla-secciones').innerHTML = SECCIONES.map((s) =>
+    `<tr><td>${s.codigo}</td><td>${s.curso}</td><td>${s.horario.dia} ${s.horario.inicio}–${s.horario.fin}</td><td>${s.aula}</td><td>${s.docente}</td>` +
+    `<td class="num">${s.cupos} de ${s.capacidad}</td><td><span class="pill ${s.estadoPago}">${ETIQUETA[s.estadoPago]}</span></td></tr>`).join('');
+  const opciones = SECCIONES.map((s) => `<option value="${s.codigo}">${s.codigo}: ${s.curso}</option>`).join('');
+  $('sel-a').innerHTML = opciones; $('sel-b').innerHTML = opciones;
+  $('sel-b').selectedIndex = 1;
+}
+
+function renderOcupacion() {
+  $('tabla-ocupacion').innerHTML = ocupacionPorAula(SECCIONES).map((a) =>
+    `<tr><td>${a.aula}</td><td>${a.secciones.join(', ')}</td><td class="num">${a.matriculados}</td><td class="num">${a.capacidad}</td>` +
+    `<td><div class="barra" title="${a.porcentaje} %"><i style="width:${a.porcentaje}%"></i></div></td></tr>`).join('');
+}
+
+function actualizarPension() {
+  const r = $('res-pension');
+  try {
+    const total = calcularPension(parseFloat($('monto').value), parseFloat($('desc').value || '0'), Number($('atraso').value || '0'));
+    r.className = 'resultado';
+    r.textContent = 'Total a pagar: S/ ' + total.toFixed(2);
+  } catch (err) {
+    r.className = 'resultado error';
+    r.textContent = err.message;
+  }
+}
+
+function validarPar() {
+  const r = $('res-cruce'), a = $('sel-a').value, b = $('sel-b').value;
+  if (a === b) { r.className = 'resultado error'; r.textContent = 'Elige dos secciones distintas.'; return; }
+  const m = motivoCruce(SECCIONES.find((s) => s.codigo === a), SECCIONES.find((s) => s.codigo === b));
+  r.className = m ? 'resultado error' : 'resultado';
+  r.textContent = m ? `Cruce por ${m.join(' y ')}.` : 'No hay cruce.';
+}
+
+['monto', 'desc', 'atraso'].forEach((id) => $(id).addEventListener('input', actualizarPension));
+$('btn-validar').addEventListener('click', validarPar);
+renderSemana(); renderSecciones(); renderOcupacion(); actualizarPension(); validarPar();
+</script>
+</body>
+</html>

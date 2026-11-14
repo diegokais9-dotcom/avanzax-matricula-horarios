@@ -1,0 +1,8 @@
+{
+  "name": "avanzax-matricula-horarios",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Mini-sistema ficticio de matrícula y horarios del Instituto Avanzax",
+  "scripts": { "test": "node --test" },
+  "engines": { "node": ">=18" }
+}
