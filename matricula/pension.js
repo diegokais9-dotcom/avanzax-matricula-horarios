@@ -6,7 +6,7 @@
   if (typeof module === 'object' && module.exports) module.exports = factory();
   else Object.assign(root, factory());
 })(typeof self !== 'undefined' ? self : this, function () {
-  const TASA_MORA = 0.2;
+  const TASA_MORA = 0.02;
 
   function calcularPension(montoBase, descuentoPct = 0, mesesAtraso = 0) {
     if (typeof montoBase !== 'number' || !(montoBase > 0)) {
