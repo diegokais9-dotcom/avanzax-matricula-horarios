@@ -1,0 +1,31 @@
+name: PR check
+
+# Valida las convenciones del equipo: nombre de rama y título del pull request.
+on:
+  pull_request:
+    branches: [develop, main]
+
+jobs:
+  convenciones:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validar nombre de la rama
+        env:
+          RAMA: ${{ github.head_ref }}
+        run: |
+          if [[ "$RAMA" =~ ^(feature|hotfix|release)/.+$ || "$RAMA" == "develop" || "$RAMA" == "main" ]]; then
+            echo "Rama válida: $RAMA"
+          else
+            echo "La rama '$RAMA' debe empezar con feature/, hotfix/ o release/."
+            exit 1
+          fi
+      - name: Validar título del pull request
+        env:
+          TITULO: ${{ github.event.pull_request.title }}
+        run: |
+          if [[ "$TITULO" =~ ^(feat|fix|docs|chore|test|refactor)(\(.+\))?:\ .+ ]]; then
+            echo "Título válido: $TITULO"
+          else
+            echo "El título debe seguir el formato 'tipo: descripción' (feat, fix, docs, chore, test o refactor)."
+            exit 1
+          fi
