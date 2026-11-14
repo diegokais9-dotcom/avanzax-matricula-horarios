@@ -7,7 +7,7 @@
   else Object.assign(root, factory());
 })(typeof self !== 'undefined' ? self : this, function () {
   const SECCIONES = [
-    { codigo: 'S-101', curso: 'Álgebra', cupos: 12, capacidad: 30, estadoPago: 'pagado',
+    { codigo: 'S-101', curso: 'Álgebra', cupos: 10, capacidad: 30, estadoPago: 'pagado',
       horario: { dia: 'Lun', inicio: '08:00', fin: '10:00' }, aula: 'A-101', docente: 'Quispe' },
     { codigo: 'S-102', curso: 'Razonamiento', cupos: 4, capacidad: 25, estadoPago: 'pendiente',
       horario: { dia: 'Lun', inicio: '10:00', fin: '12:00' }, aula: 'A-102', docente: 'Mendoza' },
